@@ -73,7 +73,7 @@ If that does not work, use the password configured for your hub in the Norman ap
 3. Add this repository URL:
 
 ```text
-https://github.com/Herbertmt978/Norman_Gen1_Custom_HAHACS_Integration
+https://github.com/Herbertmt978/Norman_Gen1_HA_Integration
 ```
 
 4. Set the category to **Integration**.
