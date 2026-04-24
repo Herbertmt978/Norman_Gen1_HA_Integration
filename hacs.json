@@ -1,6 +1,4 @@
 {
   "name": "Norman Gen 1 Hub",
-  "render_readme": true,
-  "domains": ["cover"],
   "homeassistant": "2024.6.0"
 }

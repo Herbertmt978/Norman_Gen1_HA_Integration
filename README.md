@@ -68,6 +68,12 @@ If that does not work, use the password configured for your hub in the Norman ap
 
 ## HACS Installation
 
+Use this link if you already have HACS installed:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Herbertmt978&repository=Norman_Gen1_HA_Integration&category=integration)
+
+Or add it by hand:
+
 1. In Home Assistant, open HACS.
 2. Go to the three-dot menu and choose **Custom repositories**.
 3. Add this repository URL:
