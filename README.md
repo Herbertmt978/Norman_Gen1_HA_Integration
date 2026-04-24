@@ -1,0 +1,110 @@
+# Norman Gen 1 Hub Home Assistant Integration
+
+Local Home Assistant custom integration for Norman Gen 1 shutter/blind hubs.
+
+This project was created because I could not get a Gen 2 hub to test with, and the existing public options I found were aimed at newer hubs. It works with my Gen 1 hub, but the API was inferred from local network traffic, so other Gen 1 firmware versions or regional hub variants may behave differently.
+
+## Features
+
+- Local polling and local commands, with no cloud dependency for shutter control.
+- Creates `cover` entities for each room returned by the hub.
+- Creates `cover` entities for each room group/level, which is useful for plantation shutter panels.
+- Discovers room, shutter, and group IDs from the hub during setup; no captured device IDs are hardcoded.
+- Supports open, close, and set position.
+- Keeps cover controls available while shutters are moving, then refreshes after a 10 second settle period.
+- Raises Home Assistant errors when the hub cannot be reached or does not confirm a control command.
+- Includes local brand assets for Home Assistant/HACS.
+
+## What It Talks To
+
+The integration uses the local Gen 1 HTTP API exposed by the hub:
+
+- `POST /cgi-bin/cgi/GatewayLogin`
+- `POST /cgi-bin/cgi/getRoomInfo`
+- `POST /cgi-bin/cgi/getWindowInfo`
+- `POST /cgi-bin/cgi/RemoteControl`
+
+Gen 2 hubs are not supported by this integration unless they expose the same Gen 1 endpoints.
+
+## Finding Your Hub IP Address
+
+You need the hub's local IP address before adding the integration.
+
+Good ways to find it:
+
+- Check your router, firewall, or Wi-Fi controller client list. Look for a Norman hub, a hostname starting with `NORMANHUB`, or a device you can open in a browser on port `80`.
+- In the Norman app, check whether the hub details show its network address.
+- From a computer on the same network, inspect your ARP table:
+
+```powershell
+arp -a
+```
+
+- If you have `nmap`, scan your local subnet and then try the likely addresses in a browser:
+
+```bash
+nmap -sn 192.168.1.0/24
+```
+
+Replace `192.168.1.0/24` with your own LAN subnet. Common examples are `192.168.0.0/24`, `192.168.1.0/24`, or `10.0.0.0/24`.
+
+Once you think you have the IP, visit:
+
+```text
+http://<hub-ip>/
+```
+
+If the Norman hub web page loads, use that IP in Home Assistant.
+
+## Password
+
+Many Gen 1 hubs appear to use this default local password:
+
+```text
+123456789
+```
+
+If that does not work, use the password configured for your hub in the Norman app or hub settings.
+
+## HACS Installation
+
+1. In Home Assistant, open HACS.
+2. Go to the three-dot menu and choose **Custom repositories**.
+3. Add this repository URL:
+
+```text
+https://github.com/Herbertmt978/Norman_Gen1_Custom_HAHACS_Integration
+```
+
+4. Set the category to **Integration**.
+5. Install **Norman Gen 1 Hub**.
+6. Restart Home Assistant.
+7. Go to **Settings -> Devices & services -> Add integration**.
+8. Search for **Norman Gen 1 Hub**.
+9. Enter the hub IP address, password, and app version.
+
+The default app version is `2.11.21`. Leave it as-is unless you know your hub expects something else.
+
+During setup the integration logs into the hub and scans `getRoomInfo` and `getWindowInfo`. Those responses are used to build the Home Assistant entities, so hub-specific IDs such as room IDs, shutter IDs, group IDs, and levels should be picked up dynamically.
+
+## Manual Installation
+
+Copy `custom_components/norman_gen1` into your Home Assistant `custom_components` folder and restart Home Assistant.
+
+## Entity Names
+
+The hub assigns numeric IDs to rooms and panels, but Home Assistant entity names are based on the room and group names returned by `getRoomInfo`.
+
+If the names look odd in Home Assistant, check how rooms and groups are named in the Norman app. The integration does not assume fixed names like "Room 1", "Room 2", or "Office"; it uses whatever the hub reports.
+
+## Known Limitations
+
+- Tested against one Gen 1 hub only.
+- Gen 2 hubs are untested and likely need a different API.
+- Some firmware versions may return different field names or command responses.
+- If setup cannot reach the hub, authentication fails, or the hub returns no rooms/shutters, Home Assistant will show a setup error.
+- If a command is sent but the hub does not confirm it, Home Assistant will raise a service error instead of silently assuming success.
+- The hub can acknowledge a command before shutters finish moving, so this integration assumes the requested position for 10 seconds before polling again.
+- Room-level intermediate positions are applied by sending the same target position to each room group/level.
+
+Issues and packet captures from other Gen 1 hubs are welcome, especially if a hub returns different room, group, or window data.

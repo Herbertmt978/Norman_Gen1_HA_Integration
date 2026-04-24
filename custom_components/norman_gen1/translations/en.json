@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Norman Gen 1 Hub",
+        "description": "Connect to a Norman Gen 1 shutter hub over the local network.",
+        "data": {
+          "host": "Host",
+          "password": "Password",
+          "app_version": "App version"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the Norman Gen 1 hub. Check the IP address and network access.",
+      "invalid_auth": "The hub rejected the password.",
+      "no_devices": "The hub responded, but no rooms or shutter devices were discovered.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This hub is already configured"
+    }
+  }
+}
