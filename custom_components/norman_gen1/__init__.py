@@ -113,6 +113,8 @@ def _average_position(windows: list[NormanWindow]) -> int | None:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: NormanConfigEntry) -> bool:
+    entry.async_on_unload(entry.add_update_listener(_async_update_options))
+
     session = async_get_clientsession(hass)
     api = NormanGen1Api(
         session,
@@ -141,6 +143,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: NormanConfigEntry) -> bo
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _async_update_options(hass: HomeAssistant, entry: NormanConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: NormanConfigEntry) -> bool:

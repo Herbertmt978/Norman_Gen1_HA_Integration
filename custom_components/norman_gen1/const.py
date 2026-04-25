@@ -5,6 +5,8 @@ DEFAULT_SCAN_INTERVAL = 60
 COMMAND_SETTLE_SECONDS = 10
 
 CONF_APP_VERSION = "app_version"
+CONF_TILT_OPEN_TARGETS = "tilt_open_targets"
+CONF_REVERSED_CLOSE_TARGETS = "reversed_close_targets"
 
 DATA_API = "api"
 DATA_COORDINATOR = "coordinator"

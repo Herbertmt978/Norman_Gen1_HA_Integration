@@ -25,6 +25,10 @@ NormanGen1Api = api_module.NormanGen1Api
 remember_open_position = api_module.remember_open_position
 room_open_position = api_module.room_open_position
 room_close_position = api_module.room_close_position
+room_target_id = api_module.room_target_id
+group_target_id = api_module.group_target_id
+target_override_enabled = api_module.target_override_enabled
+position_is_closed = api_module.position_is_closed
 
 
 class RecordingApi(NormanGen1Api):
@@ -48,16 +52,43 @@ class TestRoomPositionControl(unittest.TestCase):
     def test_room_open_position_uses_tilt_style_default(self) -> None:
         self.assertEqual(room_open_position({"Style": 2}, None), 37)
         self.assertEqual(room_open_position({"Style": 3}, None), 37)
-        self.assertEqual(room_open_position({"Style": 13}, None), 100)
-        self.assertEqual(room_open_position({"Style": 13}, 42), 100)
+        self.assertEqual(room_open_position({"Style": 13}, None), 37)
+        self.assertEqual(room_open_position({"Style": 13}, 42), 37)
         self.assertEqual(room_open_position({"Style": 99}, None), 100)
         self.assertEqual(room_open_position({"Style": 99}, 42), 42)
 
-    def test_room_close_position_uses_zero(self) -> None:
+    def test_room_close_position_uses_tested_style_defaults(self) -> None:
         self.assertEqual(room_close_position({"Style": 2}), 0)
         self.assertEqual(room_close_position({"Style": 3}), 0)
-        self.assertEqual(room_close_position({"Style": 13}), 0)
+        self.assertEqual(room_close_position({"Style": 13}), 100)
         self.assertEqual(room_close_position({"Style": 99}), 0)
+
+    def test_user_override_can_force_tilt_open_target(self) -> None:
+        self.assertEqual(room_open_position({"Style": 99}, None, True), 37)
+        self.assertEqual(room_open_position({"Style": 13}, 42, False), 100)
+        self.assertEqual(room_open_position({"Style": 99}, 42, False), 42)
+
+    def test_user_override_can_force_close_direction(self) -> None:
+        self.assertEqual(room_close_position({"Style": 99}, True), 100)
+        self.assertEqual(room_close_position({"Style": 13}, False), 0)
+
+    def test_room_override_targets_apply_to_room_and_groups(self) -> None:
+        targets = [room_target_id(35053), group_target_id(6559, 2)]
+
+        self.assertTrue(target_override_enabled(targets, 35053))
+        self.assertTrue(target_override_enabled(targets, 35053, 4))
+        self.assertFalse(target_override_enabled(targets, 6559))
+        self.assertTrue(target_override_enabled(targets, 6559, 2))
+        self.assertFalse(target_override_enabled(targets, 6559, 3))
+
+    def test_position_is_closed_handles_tilt_shutter_end_stops(self) -> None:
+        self.assertTrue(position_is_closed(0, 37, 0))
+        self.assertTrue(position_is_closed(100, 37, 100))
+        self.assertFalse(position_is_closed(37, 37, 100))
+
+    def test_position_is_closed_handles_normal_covers(self) -> None:
+        self.assertTrue(position_is_closed(0, 100, 0))
+        self.assertFalse(position_is_closed(100, 100, 0))
 
     def test_room_close_uses_discovered_group_levels(self) -> None:
         api = RecordingApi()

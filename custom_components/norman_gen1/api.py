@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
 
 import aiohttp
 
@@ -13,8 +13,41 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_OPEN_POSITION = 100
 DEFAULT_TILT_OPEN_POSITION = 37
 DEFAULT_CLOSE_POSITION = 0
-TILT_ROOM_STYLES = {2, 3}
-FIXED_ROOM_STYLES = TILT_ROOM_STYLES | {13}
+REVERSED_CLOSE_POSITION = 100
+TILT_ROOM_STYLES = {2, 3, 13}
+REVERSED_CLOSE_ROOM_STYLES = {13}
+FIXED_ROOM_STYLES = TILT_ROOM_STYLES
+
+
+def room_target_id(room_id: int) -> str:
+    """Return the options target id for a whole Norman room."""
+    return f"room:{int(room_id)}"
+
+
+def group_target_id(room_id: int, level: int) -> str:
+    """Return the options target id for one room group/level."""
+    return f"group:{int(room_id)}:{int(level)}"
+
+
+def target_override_enabled(targets: Iterable[str], room_id: int, level: int | None = None) -> bool:
+    """Return whether an options target list applies to this room or group.
+
+    A selected room target applies to both the room entity and all of its group
+    entities. A selected group target only applies to that single group entity.
+    """
+    target_set = {str(target) for target in targets}
+    if room_target_id(room_id) in target_set:
+        return True
+    return level is not None and group_target_id(room_id, level) in target_set
+
+
+def position_is_closed(position: int, open_position: int, close_position: int) -> bool:
+    """Return whether a reported position should be treated as closed."""
+    if 0 < open_position < 100:
+        return position <= 0 or position >= 100
+    if close_position >= open_position:
+        return position >= close_position
+    return position <= close_position
 
 
 class NormanGen1Error(Exception):
@@ -291,20 +324,32 @@ def remember_open_position(current: int | None, candidate: int | None) -> int | 
     return current
 
 
-def room_open_position(room_raw: dict[str, Any], learned_position: int | None) -> int:
+def room_open_position(
+    room_raw: dict[str, Any],
+    learned_position: int | None,
+    use_tilt_open: bool | None = None,
+) -> int:
     """Return the best open target for a room.
 
     Some Norman plantation shutter rooms use the middle of the travel as the
     visually open louver position, with both end stops being closed angles.
     """
     room_style = _as_int(room_raw.get("Style"))
-    if room_style in TILT_ROOM_STYLES:
+    if use_tilt_open is True:
+        return DEFAULT_TILT_OPEN_POSITION
+    if use_tilt_open is None and room_style in TILT_ROOM_STYLES:
         return DEFAULT_TILT_OPEN_POSITION
     if room_style not in FIXED_ROOM_STYLES and learned_position is not None:
         return learned_position
     return DEFAULT_OPEN_POSITION
 
 
-def room_close_position(room_raw: dict[str, Any]) -> int:
+def room_close_position(room_raw: dict[str, Any], use_reversed_close: bool | None = None) -> int:
     """Return the close target for a room."""
+    if use_reversed_close is True:
+        return REVERSED_CLOSE_POSITION
+    if use_reversed_close is False:
+        return DEFAULT_CLOSE_POSITION
+    if _as_int(room_raw.get("Style")) in REVERSED_CLOSE_ROOM_STYLES:
+        return REVERSED_CLOSE_POSITION
     return DEFAULT_CLOSE_POSITION

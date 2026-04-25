@@ -20,10 +20,19 @@ from .api import (
     NormanGen1Api,
     NormanRoom,
     NormanWindow,
+    position_is_closed,
     room_close_position,
     room_open_position,
+    target_override_enabled,
 )
-from .const import COMMAND_SETTLE_SECONDS, DATA_API, DATA_COORDINATOR, DOMAIN
+from .const import (
+    COMMAND_SETTLE_SECONDS,
+    CONF_REVERSED_CLOSE_TARGETS,
+    CONF_TILT_OPEN_TARGETS,
+    DATA_API,
+    DATA_COORDINATOR,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,9 +70,9 @@ async def async_setup_entry(
     levels_by_room: dict[int, list[int]] = coordinator.data["levels_by_room"]
 
     for room in rooms:
-        entities.append(NormanRoomCover(api, coordinator, room))
+        entities.append(NormanRoomCover(entry, api, coordinator, room))
         for level in levels_by_room.get(room.id, []):
-            entities.append(NormanGroupCover(api, coordinator, room, level, _group_name(room, level)))
+            entities.append(NormanGroupCover(entry, api, coordinator, room, level, _group_name(room, level)))
 
     async_add_entities(entities)
 
@@ -78,11 +87,13 @@ class NormanBaseCover(CoordinatorEntity[NormanDataUpdateCoordinator], CoverEntit
 
     def __init__(
         self,
+        entry: ConfigEntry,
         api: NormanGen1Api,
         coordinator: NormanDataUpdateCoordinator,
         room: NormanRoom,
     ) -> None:
         super().__init__(coordinator)
+        self.entry = entry
         self.api = api
         self.room = room
         self._optimistic_position: int | None = None
@@ -113,7 +124,7 @@ class NormanBaseCover(CoordinatorEntity[NormanDataUpdateCoordinator], CoverEntit
         position = self.current_cover_position
         if position is None:
             return None
-        return position <= 0
+        return position_is_closed(position, self._open_position(), self._close_position())
 
     async def _refresh_after_command(self, optimistic_position: int | None = None) -> None:
         self._refresh_generation += 1
@@ -155,12 +166,23 @@ class NormanBaseCover(CoordinatorEntity[NormanDataUpdateCoordinator], CoverEntit
     def _current_position(self) -> int | None:
         raise NotImplementedError
 
+    def _target_option_enabled(self, option_name: str, level: int | None = None) -> bool | None:
+        if option_name not in self.entry.options:
+            return None
+        return target_override_enabled(self.entry.options.get(option_name, []), self.room.id, level)
+
 
 class NormanRoomCover(NormanBaseCover):
     """Room-wide cover using the discovered group commands."""
 
-    def __init__(self, api: NormanGen1Api, coordinator: NormanDataUpdateCoordinator, room: NormanRoom) -> None:
-        super().__init__(api, coordinator, room)
+    def __init__(
+        self,
+        entry: ConfigEntry,
+        api: NormanGen1Api,
+        coordinator: NormanDataUpdateCoordinator,
+        room: NormanRoom,
+    ) -> None:
+        super().__init__(entry, api, coordinator, room)
         self._attr_unique_id = f"{api.hub_id}_room_{room.id}"
         self._attr_name = _sanitize_name(room.name)
 
@@ -194,10 +216,14 @@ class NormanRoomCover(NormanBaseCover):
 
     def _open_position(self) -> int:
         learned_position = self.coordinator.data.get("open_positions_by_room", {}).get(self.room.id)
-        return room_open_position(self.room.raw, learned_position)
+        return room_open_position(
+            self.room.raw,
+            learned_position,
+            self._target_option_enabled(CONF_TILT_OPEN_TARGETS),
+        )
 
     def _close_position(self) -> int:
-        return room_close_position(self.room.raw)
+        return room_close_position(self.room.raw, self._target_option_enabled(CONF_REVERSED_CLOSE_TARGETS))
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         position = self._open_position()
@@ -226,13 +252,14 @@ class NormanGroupCover(NormanBaseCover):
 
     def __init__(
         self,
+        entry: ConfigEntry,
         api: NormanGen1Api,
         coordinator: NormanDataUpdateCoordinator,
         room: NormanRoom,
         level: int,
         group_name: str,
     ) -> None:
-        super().__init__(api, coordinator, room)
+        super().__init__(entry, api, coordinator, room)
         self.level = level
         self.group_name = _sanitize_name(group_name)
         self._attr_unique_id = f"{api.hub_id}_room_{room.id}_level_{level}"
@@ -267,10 +294,14 @@ class NormanGroupCover(NormanBaseCover):
 
     def _open_position(self) -> int:
         learned_position = self.coordinator.data.get("open_positions_by_group", {}).get((self.room.id, self.level))
-        return room_open_position(self.room.raw, learned_position)
+        return room_open_position(
+            self.room.raw,
+            learned_position,
+            self._target_option_enabled(CONF_TILT_OPEN_TARGETS, self.level),
+        )
 
     def _close_position(self) -> int:
-        return room_close_position(self.room.raw)
+        return room_close_position(self.room.raw, self._target_option_enabled(CONF_REVERSED_CLOSE_TARGETS, self.level))
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         position = self._open_position()

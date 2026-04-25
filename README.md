@@ -12,6 +12,7 @@ This project was created because I could not get a Gen 2 hub to test with, and t
 - Discovers room, shutter, and group IDs from the hub during setup; no captured device IDs are hardcoded.
 - Supports open, close, and set position.
 - Uses a mid-position open target for tilt-style plantation shutter rooms when the hub reports those rooms as needing one, so `open` does not drive the louvers through open and closed again.
+- Lets users override plantation shutter open/close direction per room or panel from the integration Configure screen.
 - Keeps cover controls available while shutters are moving, then refreshes after a 10 second settle period.
 - Raises Home Assistant errors when the hub cannot be reached or does not confirm a control command.
 - Includes local brand assets for Home Assistant/HACS.
@@ -94,6 +95,20 @@ The default app version is `2.11.21`. Leave it as-is unless you know your hub ex
 
 During setup the integration logs into the hub and scans `getRoomInfo` and `getWindowInfo`. Those responses are used to build the Home Assistant entities, so hub-specific IDs such as room IDs, shutter IDs, group IDs, and levels should be picked up dynamically.
 
+## Plantation Shutter Direction Options
+
+The integration includes tested plantation shutter defaults, but different Gen 1 hubs or motor pairings may report the same style with a different physical direction.
+
+To adjust this after setup:
+
+1. Go to **Settings -> Devices & services**.
+2. Open **Norman Gen 1 Hub**.
+3. Choose **Configure**.
+4. Use **Open to position 37** for rooms or panels where Home Assistant's open command should stop at the visual open louver angle.
+5. Use **Close to position 100** for rooms or panels where the close direction is reversed.
+
+Selecting a room applies to that room entity and all of its panel/group entities. Selecting a panel only changes that panel. The `open_position` and `close_position` entity attributes show the positions Home Assistant will send.
+
 ## Manual Installation
 
 Copy `custom_components/norman_gen1` into your Home Assistant `custom_components` folder and restart Home Assistant.
@@ -116,8 +131,8 @@ If the names look odd in Home Assistant, check how rooms and groups are named in
 - If a command is sent but the hub does not confirm it, Home Assistant will raise a service error instead of silently assuming success.
 - The hub can acknowledge a command before shutters finish moving, so this integration assumes the requested position for 10 seconds before polling again.
 - Room-level intermediate positions are applied by sending the same target position to each room group/level.
-- Some plantation shutter motors use both end stops as closed louver angles. On the tested hub, Lounge and Bedroom needed position `37` as the visual open target, while Office opened correctly at `100`. The integration now keeps tested room styles on fixed targets so transient in-motion positions do not get remembered by mistake.
-- Close uses position `0` for all tested room styles. This avoids the shutters closing toward the opposite louver end stop.
+- Some plantation shutter motors use both end stops as closed louver angles. On the tested hub, Lounge, Bedroom, and Office needed position `37` as the visual open target. The integration now keeps tested room styles on fixed targets so transient in-motion positions do not get remembered by mistake.
+- Close uses position `0` for the tested Lounge and Bedroom styles. The tested Office style closes in the opposite direction, so it uses position `100` for close.
 
 Issues and packet captures from other Gen 1 hubs are welcome, especially if a hub returns different room, group, or window data.
 
@@ -143,3 +158,11 @@ Issues and packet captures from other Gen 1 hubs are welcome, especially if a hu
 - Corrected the tested Office room style so it keeps using `100` for `open`; Office open was already working correctly.
 - Added an explicit `close_position` attribute and kept close at `0` for the tested room styles.
 - Prevented transient learned positions from overriding known tested room styles while shutters are moving.
+
+### 0.1.11
+
+- Corrected the tested Office plantation shutter style after live testing showed `100` was the close direction, not the visual open position.
+- Office-style shutters now use position `37` for open and position `100` for close.
+- Lounge and Bedroom tested styles continue to use position `37` for open and position `0` for close.
+- Added a Configure screen so users can choose which rooms or panels open to position `37` and which close to position `100`.
+- Treat either end stop as closed for tilt-style plantation shutters, so reversed shutters do not show as open when they are closed at position `100`.

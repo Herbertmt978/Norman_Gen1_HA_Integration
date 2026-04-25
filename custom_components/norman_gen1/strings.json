@@ -20,5 +20,17 @@
     "abort": {
       "already_configured": "This hub is already configured"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Norman Gen 1 Hub options",
+        "description": "Adjust plantation shutter direction defaults. Selecting a room also applies to its panels; selecting a panel only applies to that panel.",
+        "data": {
+          "tilt_open_targets": "Open to position 37",
+          "reversed_close_targets": "Close to position 100"
+        }
+      }
+    }
   }
 }
