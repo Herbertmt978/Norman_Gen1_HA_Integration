@@ -25,9 +25,12 @@ async def _validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str
         data[CONF_PASSWORD],
         data.get(CONF_APP_VERSION, DEFAULT_APP_VERSION),
     )
-    info = await api.login()
-    rooms = await api.get_rooms()
-    windows = await api.get_windows()
+    try:
+        info = await api.login()
+        rooms = await api.get_rooms()
+        windows = await api.get_windows()
+    finally:
+        await api.logout()
     if not rooms and not windows:
         raise NoDevicesFound("Hub responded, but no rooms or shutter devices were discovered")
     return info

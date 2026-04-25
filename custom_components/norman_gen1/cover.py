@@ -128,6 +128,8 @@ class NormanBaseCover(CoordinatorEntity[NormanDataUpdateCoordinator], CoverEntit
             message = "Norman Gen 1 hub did not confirm the shutter command"
             _LOGGER.warning("%s for %s: %s", message, self.entity_id, err)
             raise HomeAssistantError(f"{message}: {err}") from err
+        finally:
+            await self.api.logout()
         await self._refresh_after_command(optimistic_position)
 
     async def _delayed_refresh(self, generation: int) -> None:

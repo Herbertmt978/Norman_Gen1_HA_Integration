@@ -47,8 +47,11 @@ class NormanDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(str(err)) from err
 
     async def _fetch_data(self) -> dict[str, Any]:
-        rooms = await self.api.get_rooms()
-        windows = await self.api.get_windows()
+        try:
+            rooms = await self.api.get_rooms()
+            windows = await self.api.get_windows()
+        finally:
+            await self.api.logout()
         rooms_by_id = {room.id: room for room in rooms}
         windows_by_room: dict[int, list[NormanWindow]] = defaultdict(list)
         windows_by_group: dict[tuple[int, int], list[NormanWindow]] = defaultdict(list)
@@ -92,7 +95,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: NormanConfigEntry) -> bo
         entry.data[CONF_PASSWORD],
         entry.data.get(CONF_APP_VERSION) or "2.11.21",
     )
-    await api.login()
 
     coordinator = NormanDataUpdateCoordinator(hass, api)
     await coordinator.async_config_entry_first_refresh()

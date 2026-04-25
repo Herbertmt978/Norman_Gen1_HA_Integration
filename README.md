@@ -108,6 +108,7 @@ If the names look odd in Home Assistant, check how rooms and groups are named in
 - Tested against one Gen 1 hub only.
 - Gen 2 hubs are untested and likely need a different API.
 - Some firmware versions may return different field names or command responses.
+- The hub can acknowledge a command even when a shutter motor does not physically move. If the official Norman app also cannot move that room or panel, check hub placement, RF range, motor battery, and pairing before troubleshooting this integration.
 - If setup cannot reach the hub, authentication fails, or the hub returns no rooms/shutters, Home Assistant will show a setup error.
 - If a command is sent but the hub does not confirm it, Home Assistant will raise a service error instead of silently assuming success.
 - The hub can acknowledge a command before shutters finish moving, so this integration assumes the requested position for 10 seconds before polling again.
@@ -121,3 +122,8 @@ Issues and packet captures from other Gen 1 hubs are welcome, especially if a hu
 
 - Fixed room-level open and close commands for hubs where Norman's `fullopen`/`fullclose` room command reports success but does not move every shutter. Room entities now send the same group/level commands used by the panel entities, using discovered group levels and panel model values.
 - Added a focused unit test for room-level control so room close/open continues to use discovered group commands.
+
+### 0.1.8
+
+- Log out of the hub after setup checks, polling, and control commands so Home Assistant does not hold the Gen 1 hub session open and block the Norman phone app.
+- Added troubleshooting guidance for rooms or panels that do not move in either Home Assistant or the official Norman app.

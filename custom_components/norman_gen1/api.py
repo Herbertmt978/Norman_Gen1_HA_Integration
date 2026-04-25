@@ -95,9 +95,11 @@ class NormanGen1Api:
         return data
 
     async def logout(self) -> None:
+        if not self._session_cookie:
+            return
         try:
-            await self._post("AdminLogout", {})
-            await self._post("GatewayLogout", {})
+            await self._post("AdminLogout", {}, auto_login=False)
+            await self._post("GatewayLogout", {}, auto_login=False)
         except NormanGen1Error:
             _LOGGER.debug("Ignoring logout failure", exc_info=True)
         finally:
@@ -191,7 +193,11 @@ class NormanGen1Api:
         payload: dict[str, Any],
         *,
         require_session: bool = True,
+        auto_login: bool = True,
     ) -> tuple[dict[str, Any], dict[str, str]]:
+        if require_session and auto_login and not self._session_cookie:
+            await self.login()
+
         headers = {
             "Accept": "*/*",
             "Content-Type": "application/json",
