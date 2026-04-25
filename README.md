@@ -109,6 +109,8 @@ If the names look odd in Home Assistant, check how rooms and groups are named in
 - Gen 2 hubs are untested and likely need a different API.
 - Some firmware versions may return different field names or command responses.
 - The hub can acknowledge a command even when a shutter motor does not physically move. If the official Norman app also cannot move that room or panel, check hub placement, RF range, motor battery, and pairing before troubleshooting this integration.
+- A handheld Norman remote moving a shutter does not prove that the hub can move it. The handheld remote may be paired directly with the motor while the hub has a stale pairing, poor range, or a different room/panel mapping.
+- BroadLink-style RF learning is not a guaranteed fallback. If an RM Pro stays in learning mode while the shutter still responds to the Norman remote, the Norman remote is probably using a frequency or protocol the BroadLink cannot learn.
 - If setup cannot reach the hub, authentication fails, or the hub returns no rooms/shutters, Home Assistant will show a setup error.
 - If a command is sent but the hub does not confirm it, Home Assistant will raise a service error instead of silently assuming success.
 - The hub can acknowledge a command before shutters finish moving, so this integration assumes the requested position for 10 seconds before polling again.
