@@ -148,16 +148,28 @@ class NormanGen1Api:
             {"type": "level", "Lid": int(level), "id": int(room_id), "action": position, "model": model}
         )
 
-    async def set_room_position(self, room_id: int, levels: list[int], position: int) -> None:
+    async def set_room_position(
+        self,
+        room_id: int,
+        levels: list[int],
+        position: int,
+        models_by_level: dict[int, int] | None = None,
+    ) -> None:
         position = max(0, min(100, int(position)))
-        if position >= 100:
-            await self.full_open_room(room_id)
-            return
-        if position <= 0:
-            await self.full_close_room(room_id)
-            return
-        for level in sorted(set(levels)):
-            await self.set_group_position(room_id, level, position)
+        unique_levels = sorted(set(levels))
+        if not unique_levels:
+            if position >= 100:
+                await self.full_open_room(room_id)
+                return
+            if position <= 0:
+                await self.full_close_room(room_id)
+                return
+            raise CannotControl(f"Cannot set room {room_id} to {position}% because no group levels were discovered")
+
+        _LOGGER.debug("Controlling Norman room %s via %s group level command(s)", room_id, len(unique_levels))
+        for level in unique_levels:
+            model = models_by_level.get(level, 1) if models_by_level else 1
+            await self.set_group_position(room_id, level, position, model)
             await asyncio.sleep(0.15)
 
     async def _remote_control(self, payload: dict[str, Any]) -> dict[str, Any]:

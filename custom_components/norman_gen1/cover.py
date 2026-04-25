@@ -146,7 +146,7 @@ class NormanBaseCover(CoordinatorEntity[NormanDataUpdateCoordinator], CoverEntit
 
 
 class NormanRoomCover(NormanBaseCover):
-    """Room-wide cover using full open/full close hub commands."""
+    """Room-wide cover using the discovered group commands."""
 
     def __init__(self, api: NormanGen1Api, coordinator: NormanDataUpdateCoordinator, room: NormanRoom) -> None:
         super().__init__(api, coordinator, room)
@@ -165,16 +165,38 @@ class NormanRoomCover(NormanBaseCover):
     def _current_position(self) -> int | None:
         return _average_position(self.coordinator.data.get("windows_by_room", {}).get(self.room.id, []))
 
+    def _levels(self) -> list[int]:
+        return self.coordinator.data.get("levels_by_room", {}).get(self.room.id, [])
+
+    def _models_by_level(self) -> dict[int, int]:
+        models: dict[int, int] = {}
+        windows_by_group = self.coordinator.data.get("windows_by_group", {})
+        for level in self._levels():
+            for window in windows_by_group.get((self.room.id, level), []):
+                model = window.raw.get("model")
+                if model is not None:
+                    models[level] = int(model)
+                    break
+        return models
+
     async def async_open_cover(self, **kwargs: Any) -> None:
-        await self._run_control_command(self.api.full_open_room(self.room.id), 100)
+        await self._run_control_command(
+            self.api.set_room_position(self.room.id, self._levels(), 100, self._models_by_level()),
+            100,
+        )
 
     async def async_close_cover(self, **kwargs: Any) -> None:
-        await self._run_control_command(self.api.full_close_room(self.room.id), 0)
+        await self._run_control_command(
+            self.api.set_room_position(self.room.id, self._levels(), 0, self._models_by_level()),
+            0,
+        )
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         position = int(kwargs[ATTR_POSITION])
-        levels = self.coordinator.data.get("levels_by_room", {}).get(self.room.id, [])
-        await self._run_control_command(self.api.set_room_position(self.room.id, levels, position), position)
+        await self._run_control_command(
+            self.api.set_room_position(self.room.id, self._levels(), position, self._models_by_level()),
+            position,
+        )
 
 
 class NormanGroupCover(NormanBaseCover):

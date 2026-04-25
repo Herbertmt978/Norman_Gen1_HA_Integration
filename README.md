@@ -114,3 +114,10 @@ If the names look odd in Home Assistant, check how rooms and groups are named in
 - Room-level intermediate positions are applied by sending the same target position to each room group/level.
 
 Issues and packet captures from other Gen 1 hubs are welcome, especially if a hub returns different room, group, or window data.
+
+## Changelog
+
+### 0.1.7
+
+- Fixed room-level open and close commands for hubs where Norman's `fullopen`/`fullclose` room command reports success but does not move every shutter. Room entities now send the same group/level commands used by the panel entities, using discovered group levels and panel model values.
+- Added a focused unit test for room-level control so room close/open continues to use discovered group commands.
