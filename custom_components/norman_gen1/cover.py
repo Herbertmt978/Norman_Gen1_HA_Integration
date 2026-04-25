@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import NormanDataUpdateCoordinator
-from .api import CannotConnect, CannotControl, InvalidAuth, NormanGen1Api, NormanRoom, NormanWindow
+from .api import CannotConnect, CannotControl, InvalidAuth, NormanGen1Api, NormanRoom, NormanWindow, room_open_position
 from .const import COMMAND_SETTLE_SECONDS, DATA_API, DATA_COORDINATOR, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -162,6 +162,7 @@ class NormanRoomCover(NormanBaseCover):
             "room_id": self.room.id,
             "window_count": len(windows),
             "levels": self.coordinator.data.get("levels_by_room", {}).get(self.room.id, []),
+            "open_position": self._open_position(),
         }
 
     def _current_position(self) -> int | None:
@@ -181,10 +182,15 @@ class NormanRoomCover(NormanBaseCover):
                     break
         return models
 
+    def _open_position(self) -> int:
+        learned_position = self.coordinator.data.get("open_positions_by_room", {}).get(self.room.id)
+        return room_open_position(self.room.raw, learned_position)
+
     async def async_open_cover(self, **kwargs: Any) -> None:
+        position = self._open_position()
         await self._run_control_command(
-            self.api.set_room_position(self.room.id, self._levels(), 100, self._models_by_level()),
-            100,
+            self.api.set_room_position(self.room.id, self._levels(), position, self._models_by_level()),
+            position,
         )
 
     async def async_close_cover(self, **kwargs: Any) -> None:
@@ -227,6 +233,7 @@ class NormanGroupCover(NormanBaseCover):
             "group_name": self.group_name,
             "window_ids": [window.id for window in windows],
             "window_names": [window.name for window in windows],
+            "open_position": self._open_position(),
         }
 
     @property
@@ -243,8 +250,16 @@ class NormanGroupCover(NormanBaseCover):
                 return int(model)
         return 1
 
+    def _open_position(self) -> int:
+        learned_position = self.coordinator.data.get("open_positions_by_group", {}).get((self.room.id, self.level))
+        return room_open_position(self.room.raw, learned_position)
+
     async def async_open_cover(self, **kwargs: Any) -> None:
-        await self._run_control_command(self.api.set_group_position(self.room.id, self.level, 100, self._model()), 100)
+        position = self._open_position()
+        await self._run_control_command(
+            self.api.set_group_position(self.room.id, self.level, position, self._model()),
+            position,
+        )
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         await self._run_control_command(self.api.set_group_position(self.room.id, self.level, 0, self._model()), 0)

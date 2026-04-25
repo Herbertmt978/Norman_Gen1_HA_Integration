@@ -11,6 +11,7 @@ This project was created because I could not get a Gen 2 hub to test with, and t
 - Creates `cover` entities for each room group/level, which is useful for plantation shutter panels.
 - Discovers room, shutter, and group IDs from the hub during setup; no captured device IDs are hardcoded.
 - Supports open, close, and set position.
+- Uses a mid-position open target for tilt-style plantation shutter rooms when the hub reports those rooms as needing one, so `open` does not drive the louvers through open and closed again.
 - Keeps cover controls available while shutters are moving, then refreshes after a 10 second settle period.
 - Raises Home Assistant errors when the hub cannot be reached or does not confirm a control command.
 - Includes local brand assets for Home Assistant/HACS.
@@ -115,6 +116,7 @@ If the names look odd in Home Assistant, check how rooms and groups are named in
 - If a command is sent but the hub does not confirm it, Home Assistant will raise a service error instead of silently assuming success.
 - The hub can acknowledge a command before shutters finish moving, so this integration assumes the requested position for 10 seconds before polling again.
 - Room-level intermediate positions are applied by sending the same target position to each room group/level.
+- Some plantation shutter motors use both end stops as closed louver angles. On the tested hub, Lounge, Bedroom, and Office needed position `37` as the visual open target. The integration now uses that mid-position target for those tested tilt-style room styles and remembers any intermediate position the hub reports later.
 
 Issues and packet captures from other Gen 1 hubs are welcome, especially if a hub returns different room, group, or window data.
 
@@ -129,3 +131,8 @@ Issues and packet captures from other Gen 1 hubs are welcome, especially if a hu
 
 - Log out of the hub after setup checks, polling, and control commands so Home Assistant does not hold the Gen 1 hub session open and block the Norman phone app.
 - Added troubleshooting guidance for rooms or panels that do not move in either Home Assistant or the official Norman app.
+
+### 0.1.9
+
+- Added tilt-style plantation shutter open-position handling. Rooms reported by the hub with tested tilt styles now use position `37` for `open`, because `100` can drive the louvers past open and closed again. This covers the tested Lounge, Bedroom, and Office room styles.
+- Room and panel entities expose the `open_position` attribute so users can see which open target is being used.

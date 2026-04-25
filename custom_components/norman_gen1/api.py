@@ -10,6 +10,9 @@ import aiohttp
 from .const import DEFAULT_APP_VERSION
 
 _LOGGER = logging.getLogger(__name__)
+DEFAULT_OPEN_POSITION = 100
+DEFAULT_TILT_OPEN_POSITION = 37
+TILT_ROOM_STYLES = {2, 3, 13}
 
 
 class NormanGen1Error(Exception):
@@ -277,3 +280,23 @@ def _is_success_value(value: Any) -> bool:
     if isinstance(value, str):
         return value.strip().lower() in {"ok", "success", "true"}
     return False
+
+
+def remember_open_position(current: int | None, candidate: int | None) -> int | None:
+    """Remember a non-end-stop shutter position as the preferred open target."""
+    if candidate is not None and 0 < candidate < 100:
+        return candidate
+    return current
+
+
+def room_open_position(room_raw: dict[str, Any], learned_position: int | None) -> int:
+    """Return the best open target for a room.
+
+    Some Norman plantation shutter rooms use the middle of the travel as the
+    visually open louver position, with both end stops being closed angles.
+    """
+    if learned_position is not None:
+        return learned_position
+    if _as_int(room_raw.get("Style")) in TILT_ROOM_STYLES:
+        return DEFAULT_TILT_OPEN_POSITION
+    return DEFAULT_OPEN_POSITION

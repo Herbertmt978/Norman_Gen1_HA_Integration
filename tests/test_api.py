@@ -22,6 +22,8 @@ sys.modules.setdefault("custom_components.norman_gen1", norman_package)
 api_module = importlib.import_module("custom_components.norman_gen1.api")
 CannotControl = api_module.CannotControl
 NormanGen1Api = api_module.NormanGen1Api
+remember_open_position = api_module.remember_open_position
+room_open_position = api_module.room_open_position
 
 
 class RecordingApi(NormanGen1Api):
@@ -35,6 +37,20 @@ class RecordingApi(NormanGen1Api):
 
 
 class TestRoomPositionControl(unittest.TestCase):
+    def test_intermediate_position_is_remembered_as_open_target(self) -> None:
+        self.assertEqual(remember_open_position(None, 37), 37)
+        self.assertEqual(remember_open_position(37, 0), 37)
+        self.assertEqual(remember_open_position(37, 100), 37)
+        self.assertIsNone(remember_open_position(None, 0))
+        self.assertIsNone(remember_open_position(None, 100))
+
+    def test_room_open_position_uses_tilt_style_default(self) -> None:
+        self.assertEqual(room_open_position({"Style": 2}, None), 37)
+        self.assertEqual(room_open_position({"Style": 3}, None), 37)
+        self.assertEqual(room_open_position({"Style": 13}, None), 37)
+        self.assertEqual(room_open_position({"Style": 99}, None), 100)
+        self.assertEqual(room_open_position({"Style": 13}, 42), 42)
+
     def test_room_close_uses_discovered_group_levels(self) -> None:
         api = RecordingApi()
 
