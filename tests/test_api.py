@@ -24,6 +24,7 @@ CannotControl = api_module.CannotControl
 NormanGen1Api = api_module.NormanGen1Api
 remember_open_position = api_module.remember_open_position
 room_open_position = api_module.room_open_position
+room_close_position = api_module.room_close_position
 
 
 class RecordingApi(NormanGen1Api):
@@ -47,9 +48,16 @@ class TestRoomPositionControl(unittest.TestCase):
     def test_room_open_position_uses_tilt_style_default(self) -> None:
         self.assertEqual(room_open_position({"Style": 2}, None), 37)
         self.assertEqual(room_open_position({"Style": 3}, None), 37)
-        self.assertEqual(room_open_position({"Style": 13}, None), 37)
+        self.assertEqual(room_open_position({"Style": 13}, None), 100)
+        self.assertEqual(room_open_position({"Style": 13}, 42), 100)
         self.assertEqual(room_open_position({"Style": 99}, None), 100)
-        self.assertEqual(room_open_position({"Style": 13}, 42), 42)
+        self.assertEqual(room_open_position({"Style": 99}, 42), 42)
+
+    def test_room_close_position_uses_zero(self) -> None:
+        self.assertEqual(room_close_position({"Style": 2}), 0)
+        self.assertEqual(room_close_position({"Style": 3}), 0)
+        self.assertEqual(room_close_position({"Style": 13}), 0)
+        self.assertEqual(room_close_position({"Style": 99}), 0)
 
     def test_room_close_uses_discovered_group_levels(self) -> None:
         api = RecordingApi()

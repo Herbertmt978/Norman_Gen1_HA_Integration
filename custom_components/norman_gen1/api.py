@@ -12,7 +12,9 @@ from .const import DEFAULT_APP_VERSION
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_OPEN_POSITION = 100
 DEFAULT_TILT_OPEN_POSITION = 37
-TILT_ROOM_STYLES = {2, 3, 13}
+DEFAULT_CLOSE_POSITION = 0
+TILT_ROOM_STYLES = {2, 3}
+FIXED_ROOM_STYLES = TILT_ROOM_STYLES | {13}
 
 
 class NormanGen1Error(Exception):
@@ -295,8 +297,14 @@ def room_open_position(room_raw: dict[str, Any], learned_position: int | None) -
     Some Norman plantation shutter rooms use the middle of the travel as the
     visually open louver position, with both end stops being closed angles.
     """
-    if learned_position is not None:
-        return learned_position
-    if _as_int(room_raw.get("Style")) in TILT_ROOM_STYLES:
+    room_style = _as_int(room_raw.get("Style"))
+    if room_style in TILT_ROOM_STYLES:
         return DEFAULT_TILT_OPEN_POSITION
+    if room_style not in FIXED_ROOM_STYLES and learned_position is not None:
+        return learned_position
     return DEFAULT_OPEN_POSITION
+
+
+def room_close_position(room_raw: dict[str, Any]) -> int:
+    """Return the close target for a room."""
+    return DEFAULT_CLOSE_POSITION

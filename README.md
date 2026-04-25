@@ -116,7 +116,8 @@ If the names look odd in Home Assistant, check how rooms and groups are named in
 - If a command is sent but the hub does not confirm it, Home Assistant will raise a service error instead of silently assuming success.
 - The hub can acknowledge a command before shutters finish moving, so this integration assumes the requested position for 10 seconds before polling again.
 - Room-level intermediate positions are applied by sending the same target position to each room group/level.
-- Some plantation shutter motors use both end stops as closed louver angles. On the tested hub, Lounge, Bedroom, and Office needed position `37` as the visual open target. The integration now uses that mid-position target for those tested tilt-style room styles and remembers any intermediate position the hub reports later.
+- Some plantation shutter motors use both end stops as closed louver angles. On the tested hub, Lounge and Bedroom needed position `37` as the visual open target, while Office opened correctly at `100`. The integration now keeps tested room styles on fixed targets so transient in-motion positions do not get remembered by mistake.
+- Close uses position `0` for all tested room styles. This avoids the shutters closing toward the opposite louver end stop.
 
 Issues and packet captures from other Gen 1 hubs are welcome, especially if a hub returns different room, group, or window data.
 
@@ -136,3 +137,9 @@ Issues and packet captures from other Gen 1 hubs are welcome, especially if a hu
 
 - Added tilt-style plantation shutter open-position handling. Rooms reported by the hub with tested tilt styles now use position `37` for `open`, because `100` can drive the louvers past open and closed again. This covers the tested Lounge, Bedroom, and Office room styles.
 - Room and panel entities expose the `open_position` attribute so users can see which open target is being used.
+
+### 0.1.10
+
+- Corrected the tested Office room style so it keeps using `100` for `open`; Office open was already working correctly.
+- Added an explicit `close_position` attribute and kept close at `0` for the tested room styles.
+- Prevented transient learned positions from overriding known tested room styles while shutters are moving.
